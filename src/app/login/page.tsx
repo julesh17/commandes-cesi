@@ -1,11 +1,18 @@
+// src/app/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
+// Convertit un pseudo en email interne — jamais visible par l'utilisateur
+export function pseudoToEmail(pseudo: string): string {
+  const clean = pseudo.trim().toLowerCase().replace(/\s+/g, '-');
+  return `${clean}@cesi-interne.local`;
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,10 +24,11 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    const email = pseudoToEmail(pseudo);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError('Identifiants incorrects. Vérifiez votre email et mot de passe.');
+      setError('Pseudo ou mot de passe incorrect.');
       setLoading(false);
     } else {
       router.push('/dashboard');
@@ -31,7 +39,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cesi-950 via-cesi-800 to-cesi-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo / Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/10 backdrop-blur rounded-2xl mb-4 border border-white/20">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,21 +50,21 @@ export default function LoginPage() {
           <p className="text-cesi-200 text-sm mt-1">Gestion des commandes de matériel</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-6">Connexion</h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="form-label">Adresse email</label>
+              <label className="form-label">Pseudo</label>
               <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="text"
+                value={pseudo}
+                onChange={e => setPseudo(e.target.value)}
                 className="form-input"
-                placeholder="email@exemple.fr"
+                placeholder="Ex : admin, groupe-a…"
                 required
-                autoComplete="email"
+                autoComplete="username"
+                autoFocus
               />
             </div>
 
@@ -80,11 +87,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary justify-center py-2.5"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full btn-primary justify-center py-2.5">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -98,9 +102,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-cesi-300 text-xs mt-6">
-          CESI — Usage interne uniquement
-        </p>
+        <p className="text-center text-cesi-300 text-xs mt-6">CESI — Usage interne uniquement</p>
       </div>
     </div>
   );
