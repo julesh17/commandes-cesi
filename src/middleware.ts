@@ -29,13 +29,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // Si connecté et sur /login → aller au dashboard
-  if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  // Si non connecté et pas sur /login → aller au login
-  if (!user && pathname !== '/login') {
+  // Seule règle : si pas connecté et on essaie d'accéder au dashboard → login
+  if (!user && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -43,9 +38,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Exclure : fichiers statiques, API routes, et /login lui-même des vérifications inutiles
-  matcher: [
-    '/dashboard/:path*',
-    '/login',
-  ],
+  // Le middleware ne s'applique QUE sur /dashboard et ses sous-routes
+  // /login est complètement ignoré → plus de boucle possible
+  matcher: ['/dashboard/:path*'],
 };
