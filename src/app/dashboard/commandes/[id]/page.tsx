@@ -44,7 +44,7 @@ export default async function CommandeDetailPage({
   const cmd = commande as Commande;
 
   const sujet = 'Commande CESI arrivée';
-  const corps = `Bonjour,\n\nVotre commande "${cmd.description}" est arrivée à l'école CESI. Vous pouvez venir la récupérer à l'école.\n\nCordialement`;
+  const corps = `Bonjour,\n\nVotre commande "${cmd.description}" est arrivée. Vous pouvez venir la récupérer à l'école.\n\nCordialement`;
   const mailtoLink = `mailto:${cmd.email_referent}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
 
   return (
