@@ -7,25 +7,32 @@ import { pseudoToEmail } from '@/lib/utils';
 export default function LoginPage() {
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setErrorMsg('');
     setLoading(true);
 
     const email = pseudoToEmail(pseudo);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      setError('Pseudo ou mot de passe incorrect.');
+    const result = await supabase.auth.signInWithPassword({ email, password });
+
+    if (result.error) {
+      setErrorMsg('Erreur : ' + result.error.message);
       setLoading(false);
-    } else {
-      // Rechargement complet pour que le middleware lise la session correctement
-      window.location.href = '/dashboard';
+      return;
     }
+
+    if (!result.data.session) {
+      setErrorMsg('Pas de session créée. Réessayez.');
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = '/dashboard';
   };
 
   return (
@@ -53,7 +60,7 @@ export default function LoginPage() {
                 value={pseudo}
                 onChange={e => setPseudo(e.target.value)}
                 className="form-input"
-                placeholder="Ex : admin, groupe-a…"
+                placeholder="Ex : admin"
                 required
                 autoComplete="username"
                 autoFocus
@@ -73,9 +80,9 @@ export default function LoginPage() {
               />
             </div>
 
-            {error && (
+            {errorMsg && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                {error}
+                {errorMsg}
               </div>
             )}
 
@@ -92,6 +99,11 @@ export default function LoginPage() {
               ) : 'Se connecter'}
             </button>
           </form>
+
+          {/* Zone debug temporaire — à supprimer plus tard */}
+          <div className="mt-4 p-3 bg-slate-50 rounded text-xs text-slate-400 break-all">
+            Email tenté : {pseudo ? pseudoToEmail(pseudo) : '—'}
+          </div>
         </div>
 
         <p className="text-center text-cesi-300 text-xs mt-6">CESI — Usage interne uniquement</p>
