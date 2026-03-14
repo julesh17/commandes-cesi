@@ -29,12 +29,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  if (pathname === '/login') {
-    if (user) return NextResponse.redirect(new URL('/dashboard', request.url));
-    return supabaseResponse;
+  // Si connecté et sur /login → aller au dashboard
+  if (pathname === '/login' && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if (!user && !pathname.startsWith('/login')) {
+  // Si non connecté et pas sur /login → aller au login
+  if (!user && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -42,7 +43,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Exclure : fichiers statiques, API routes, et /login lui-même des vérifications inutiles
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/dashboard/:path*',
+    '/login',
   ],
 };
