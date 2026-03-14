@@ -73,7 +73,7 @@ export default async function BudgetPage() {
     // Budget par fournisseur
     const parFournisseur: Record<string, number> = {};
     commandesPromo.forEach(c => {
-      const nomF = (c.fournisseurs as { nom: string } | null)?.nom || 'Inconnu';
+      const nomF = (c.fournisseurs as unknown as { nom: string } | null)?.nom || 'Inconnu';
       parFournisseur[nomF] = (parFournisseur[nomF] || 0) + (c.prix_reel ? Number(c.prix_reel) : Number(c.prix_estime));
     });
 
