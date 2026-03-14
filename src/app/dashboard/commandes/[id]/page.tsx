@@ -1,3 +1,4 @@
+// FICHIER : src/app/dashboard/commandes/[id]/page.tsx
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import StatusBadge from '@/components/StatusBadge';
@@ -19,7 +20,7 @@ export default async function CommandeDetailPage({
 
   const { data: commande } = await supabase
     .from('commandes')
-    .select(`*, groupes(id, nom, promotion_id, promotions(id, nom, annee_academique)), fournisseurs(id, nom, site_web)`)
+    .select('*, groupes(id, nom, promotion_id, promotions(id, nom, annee_academique)), fournisseurs(id, nom, site_web)')
     .eq('id', id)
     .single();
 
@@ -27,8 +28,8 @@ export default async function CommandeDetailPage({
 
   const isAdmin = ['super_admin', 'responsable_pedagogique', 'assistante'].includes(profile.role);
   const isEtudiant = profile.role === 'etudiant_groupe';
+  const canSeeRealPrice = ['super_admin', 'responsable_pedagogique', 'assistante'].includes(profile.role);
 
-  // Vérifier que l'étudiant appartient bien à ce groupe
   if (isEtudiant) {
     const { data: groupe } = await supabase.from('groupes').select('id').eq('user_id', user.id).single();
     if (!groupe || groupe.id !== commande.groupe_id) redirect('/dashboard/commandes');
@@ -42,20 +43,22 @@ export default async function CommandeDetailPage({
 
   const cmd = commande as Commande;
 
-  const mailtoLink = `mailto:${cmd.email_referent}?subject=Commande%20CESI%20arriv%C3%A9e&body=Bonjour%2C%0A%0AVotre%20commande%20est%20arriv%C3%A9e%20%C3%A0%20l'%C3%A9cole%20CESI.%20Vous%20pouvez%20venir%20la%20r%C3%A9cup%C3%A9rer%20%C3%A0%20l'accueil.%0A%0ACordialement%2C%0AL'%C3%A9quipe%20CESI`;
+  const sujet = 'Commande CESI arrivée';
+  const corps = `Bonjour,\n\nVotre commande "${cmd.description}" est arrivée à l'école CESI. Vous pouvez venir la récupérer à l'école.\n\nCordialement`;
+  const mailtoLink = `mailto:${cmd.email_referent}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
 
   return (
     <div>
       <div className="mb-6">
-        <a href="/dashboard/commandes" className="text-sm text-slate-500 hover:text-slate-700">
+        <a href="/dashboard/commandes" className="text-sm hover:underline" style={{ color: '#0071e3' }}>
           ← Retour aux commandes
         </a>
         <div className="flex items-start justify-between mt-2">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#1d1d1f', letterSpacing: '-0.5px' }}>
               Commande #{cmd.id}
             </h1>
-            <p className="text-slate-500 text-sm mt-1">{cmd.description}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#6e6e73' }}>{cmd.description}</p>
           </div>
           <StatusBadge statut={cmd.statut} />
         </div>
@@ -66,64 +69,64 @@ export default async function CommandeDetailPage({
         <div className="lg:col-span-2 space-y-5">
           {/* Infos produit */}
           <div className="card p-5">
-            <h2 className="font-semibold text-slate-900 mb-4">Détails du produit</h2>
+            <h2 className="font-semibold text-sm mb-4" style={{ color: '#1d1d1f' }}>Détails du produit</h2>
             <dl className="space-y-3">
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Description</dt>
-                <dd className="text-slate-900 font-medium text-right max-w-64">{cmd.description}</dd>
+                <dt style={{ color: '#6e6e73' }}>Description</dt>
+                <dd className="font-medium text-right max-w-64" style={{ color: '#1d1d1f' }}>{cmd.description}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Lien produit</dt>
+                <dt style={{ color: '#6e6e73' }}>Lien produit</dt>
                 <dd>
                   <a href={cmd.lien_produit} target="_blank" rel="noopener noreferrer"
-                    className="text-cesi-600 hover:underline text-sm">
+                    className="text-sm hover:underline" style={{ color: '#0071e3' }}>
                     Voir le produit ↗
                   </a>
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Fournisseur</dt>
-                <dd className="text-slate-900">{cmd.fournisseurs?.nom || '—'}</dd>
+                <dt style={{ color: '#6e6e73' }}>Fournisseur</dt>
+                <dd style={{ color: '#1d1d1f' }}>{cmd.fournisseurs?.nom || '—'}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Prix estimé TTC</dt>
-                <dd className="text-slate-900 font-medium">{Number(cmd.prix_estime).toFixed(2)} €</dd>
+                <dt style={{ color: '#6e6e73' }}>Prix estimé TTC</dt>
+                <dd className="font-medium" style={{ color: '#1d1d1f' }}>{Number(cmd.prix_estime).toFixed(2)} €</dd>
               </div>
-              {isAdmin && cmd.prix_reel && (
+              {canSeeRealPrice && cmd.prix_reel && (
                 <div className="flex justify-between text-sm">
-                  <dt className="text-slate-500">Prix réel payé</dt>
-                  <dd className="text-slate-900 font-semibold text-green-700">{Number(cmd.prix_reel).toFixed(2)} €</dd>
+                  <dt style={{ color: '#6e6e73' }}>Prix réel payé</dt>
+                  <dd className="font-semibold" style={{ color: '#34c759' }}>{Number(cmd.prix_reel).toFixed(2)} €</dd>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Référent étudiant</dt>
-                <dd className="text-slate-900">{cmd.email_referent}</dd>
+                <dt style={{ color: '#6e6e73' }}>Référent étudiant</dt>
+                <dd style={{ color: '#1d1d1f' }}>{cmd.email_referent}</dd>
               </div>
             </dl>
           </div>
 
           {/* Groupe */}
           <div className="card p-5">
-            <h2 className="font-semibold text-slate-900 mb-4">Groupe</h2>
+            <h2 className="font-semibold text-sm mb-4" style={{ color: '#1d1d1f' }}>Groupe</h2>
             <dl className="space-y-3">
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Groupe</dt>
-                <dd className="text-slate-900 font-medium">{cmd.groupes?.nom}</dd>
+                <dt style={{ color: '#6e6e73' }}>Groupe</dt>
+                <dd className="font-medium" style={{ color: '#1d1d1f' }}>{cmd.groupes?.nom}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Promotion</dt>
-                <dd className="text-slate-900">{cmd.groupes?.promotions?.nom}</dd>
+                <dt style={{ color: '#6e6e73' }}>Promotion</dt>
+                <dd style={{ color: '#1d1d1f' }}>{cmd.groupes?.promotions?.nom}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-slate-500">Année académique</dt>
-                <dd className="text-slate-900">{cmd.groupes?.promotions?.annee_academique}</dd>
+                <dt style={{ color: '#6e6e73' }}>Année académique</dt>
+                <dd style={{ color: '#1d1d1f' }}>{cmd.groupes?.promotions?.annee_academique}</dd>
               </div>
             </dl>
           </div>
 
           {/* Dates */}
           <div className="card p-5">
-            <h2 className="font-semibold text-slate-900 mb-4">Chronologie</h2>
+            <h2 className="font-semibold text-sm mb-4" style={{ color: '#1d1d1f' }}>Chronologie</h2>
             <div className="space-y-2">
               {[
                 { label: 'Créée le', date: cmd.date_creation },
@@ -133,10 +136,11 @@ export default async function CommandeDetailPage({
                 { label: 'Réceptionnée le', date: cmd.date_reception },
               ].map(({ label, date }) => date && (
                 <div key={label} className="flex justify-between text-sm">
-                  <span className="text-slate-500">{label}</span>
-                  <span className="text-slate-900">
+                  <span style={{ color: '#6e6e73' }}>{label}</span>
+                  <span style={{ color: '#1d1d1f' }}>
                     {new Date(date).toLocaleDateString('fr-FR', {
-                      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      day: 'numeric', month: 'long', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
                     })}
                   </span>
                 </div>
@@ -147,16 +151,19 @@ export default async function CommandeDetailPage({
           {/* Historique */}
           {isAdmin && historique && historique.length > 0 && (
             <div className="card p-5">
-              <h2 className="font-semibold text-slate-900 mb-4">Historique des actions</h2>
+              <h2 className="font-semibold text-sm mb-4" style={{ color: '#1d1d1f' }}>Historique</h2>
               <ol className="space-y-3">
-                {historique.map((h: { id: number; action: string; details: string; created_at: string; profiles?: { nom: string; role: string } }) => (
+                {historique.map((h: { id: number; action: string; details: string; created_at: string; profiles?: { nom: string } }) => (
                   <li key={h.id} className="flex gap-3 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-cesi-400 mt-1.5 flex-shrink-0" />
+                    <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: '#0071e3' }} />
                     <div>
-                      <p className="text-slate-900 font-medium">{h.action}</p>
-                      {h.details && <p className="text-slate-500 text-xs">{h.details}</p>}
-                      <p className="text-slate-400 text-xs mt-0.5">
-                        {h.profiles?.nom || 'Système'} — {new Date(h.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      <p className="font-medium" style={{ color: '#1d1d1f' }}>{h.action}</p>
+                      {h.details && <p className="text-xs" style={{ color: '#6e6e73' }}>{h.details}</p>}
+                      <p className="text-xs mt-0.5" style={{ color: '#aeaeb2' }}>
+                        {h.profiles?.nom || 'Système'} — {new Date(h.created_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
                       </p>
                     </div>
                   </li>
@@ -177,15 +184,9 @@ export default async function CommandeDetailPage({
           )}
           {isEtudiant && cmd.statut === 'colis_arrive' && (
             <div className="card p-5">
-              <div className="flex items-center gap-2 text-purple-700 mb-3">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                <span className="font-semibold">Votre colis est arrivé !</span>
-              </div>
-              <p className="text-sm text-slate-600">
-                Votre commande est disponible à l&apos;accueil de l&apos;école. Vous pouvez venir la récupérer.
+              <p className="font-semibold text-sm mb-2" style={{ color: '#8e44ad' }}>Votre colis est arrivé !</p>
+              <p className="text-sm" style={{ color: '#6e6e73' }}>
+                Votre commande est disponible à l&apos;école. Vous pouvez venir la récupérer.
               </p>
             </div>
           )}
