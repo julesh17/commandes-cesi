@@ -11,11 +11,14 @@ interface Responsable {
 
 interface Props {
   promotionId: number;
+  // super_admin : liste de responsables à choisir (obligatoire)
+  // responsable_pedagogique : fixedResponsableId + fixedResponsableNom renseignés, pas de liste
   responsables: Responsable[];
-  defaultResponsableId?: string;
+  fixedResponsableId?: string;
+  fixedResponsableNom?: string;
 }
 
-export default function NouveauGroupeForm({ promotionId, responsables, defaultResponsableId }: Props) {
+export default function NouveauGroupeForm({ promotionId, responsables, fixedResponsableId, fixedResponsableNom }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +26,7 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
   const [nom, setNom] = useState('');
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
-  const [responsableId, setResponsableId] = useState(defaultResponsableId || '');
+  const [responsableId, setResponsableId] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +39,12 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
     }
     if (password.length < 6) { setError('Le mot de passe doit faire au moins 6 caractères.'); return; }
 
+    // Responsable : soit fixé (responsable pédagogique), soit choisi (super admin)
+    const finalResponsableId = fixedResponsableId || responsableId;
+    if (!finalResponsableId) {
+      setError('Vous devez sélectionner un responsable pédagogique.'); return;
+    }
+
     setLoading(true);
     const res = await fetch('/api/groupes/create', {
       method: 'POST',
@@ -46,7 +55,7 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
         pseudo: pseudo.trim(),
         password,
         nom_compte: nom.trim(),
-        responsable_id: responsableId || null,
+        responsable_id: finalResponsableId,
       }),
     });
 
@@ -55,7 +64,7 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
       setError(data.error || 'Une erreur est survenue.');
     } else {
       setSuccess(`Groupe "${nom}" créé ! Pseudo : ${pseudo}`);
-      setNom(''); setPseudo(''); setPassword('');
+      setNom(''); setPseudo(''); setPassword(''); setResponsableId('');
       router.refresh();
     }
     setLoading(false);
@@ -65,21 +74,41 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
     <div className="card p-5">
       <h2 className="font-semibold text-sm mb-4" style={{ color: '#1d1d1f' }}>Créer un groupe</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
+
         <div>
           <label className="form-label">Nom du groupe *</label>
           <input type="text" value={nom} onChange={e => setNom(e.target.value)}
             className="form-input" placeholder="Ex : Groupe A, Équipe 1…" />
         </div>
 
-        {responsables.length > 0 && (
+        {fixedResponsableId ? (
+          /* Responsable pédagogique : son nom en lecture seule, non modifiable */
           <div>
             <label className="form-label">Responsable pédagogique</label>
-            <select value={responsableId} onChange={e => setResponsableId(e.target.value)} className="form-input">
-              <option value="">— Aucun —</option>
-              {responsables.map(r => (
-                <option key={r.id} value={r.id}>{r.nom}</option>
-              ))}
-            </select>
+            <div className="form-input text-sm" style={{ background: '#f5f5f7', color: '#6e6e73', cursor: 'not-allowed' }}>
+              {fixedResponsableNom}
+            </div>
+            <p className="text-xs mt-1" style={{ color: '#aeaeb2' }}>
+              Vous êtes automatiquement désigné responsable de ce groupe.
+            </p>
+          </div>
+        ) : (
+          /* Super admin : liste déroulante obligatoire */
+          <div>
+            <label className="form-label">Responsable pédagogique *</label>
+            {responsables.length === 0 ? (
+              <div className="rounded-xl px-3 py-2 text-sm"
+                   style={{ background: 'rgba(255,59,48,0.08)', color: '#c0392b', border: '1px solid rgba(255,59,48,0.15)' }}>
+                Aucun responsable pédagogique disponible. Créez-en un d&apos;abord dans la section Utilisateurs.
+              </div>
+            ) : (
+              <select value={responsableId} onChange={e => setResponsableId(e.target.value)} className="form-input">
+                <option value="">— Sélectionner un responsable —</option>
+                {responsables.map(r => (
+                  <option key={r.id} value={r.id}>{r.nom}</option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 
@@ -118,7 +147,10 @@ export default function NouveauGroupeForm({ promotionId, responsables, defaultRe
           </div>
         )}
 
-        <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
+        <button
+          type="submit"
+          disabled={loading || (!fixedResponsableId && responsables.length === 0)}
+          className="btn-primary w-full justify-center">
           {loading ? 'Création…' : 'Créer le groupe'}
         </button>
       </form>
