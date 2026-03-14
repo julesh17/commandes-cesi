@@ -17,7 +17,7 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
 
   const { data: groupes } = await supabase
     .from('groupes')
-    .select('*, profiles(nom), responsable:responsable_id(nom)')
+    .select('*, responsable:responsable_id(nom)')
     .eq('promotion_id', id)
     .order('nom');
 
@@ -26,12 +26,12 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
 
   const budgetMap = new Map(budgets?.map(b => [b.groupe_id, b]));
 
-  // Charger les responsables pédagogiques pour la liste déroulante
-  const { data: responsables } = await supabase
-    .from('profiles')
-    .select('id, nom')
-    .eq('role', 'responsable_pedagogique')
-    .order('nom');
+  const isResponsable = profile.role === 'responsable_pedagogique';
+
+  // Super admin uniquement : charger la liste des responsables
+  const { data: responsables } = isResponsable
+    ? { data: [] }
+    : await supabase.from('profiles').select('id, nom').eq('role', 'responsable_pedagogique').order('nom');
 
   return (
     <div>
@@ -113,7 +113,8 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
         <NouveauGroupeForm
           promotionId={promotion.id}
           responsables={responsables || []}
-          defaultResponsableId={profile.role === 'responsable_pedagogique' ? profile.id : undefined}
+          fixedResponsableId={isResponsable ? profile.id : undefined}
+          fixedResponsableNom={isResponsable ? (profile.nom ?? undefined) : undefined}
         />
       </div>
     </div>
