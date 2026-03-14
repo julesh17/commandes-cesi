@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import CreerUtilisateurForm from './CreerUtilisateurForm';
 
+const ROLE_LABELS: Record<string, string> = {
+  responsable_pedagogique: 'Responsable pédagogique',
+  assistante: 'Assistante',
+};
+
 export default async function UtilisateursPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -11,16 +16,13 @@ export default async function UtilisateursPage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   if (!profile || profile.role !== 'super_admin') redirect('/dashboard');
 
-  const { data: users } = await supabase
+  const { data: users, error } = await supabase
     .from('profiles')
     .select('*')
     .in('role', ['responsable_pedagogique', 'assistante'])
     .order('nom');
 
-  const ROLE_LABELS: Record<string, string> = {
-    responsable_pedagogique: 'Responsable pédagogique',
-    assistante: 'Assistante',
-  };
+  if (error) console.error('Erreur chargement users:', error.message);
 
   return (
     <div>
@@ -34,7 +36,6 @@ export default async function UtilisateursPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Liste */}
         <div className="lg:col-span-2 card overflow-hidden">
           <div className="px-5 py-4" style={{ borderBottom: '1px solid #f2f2f7' }}>
             <h2 className="font-semibold text-sm" style={{ color: '#1d1d1f' }}>
@@ -45,8 +46,8 @@ export default async function UtilisateursPage() {
             <thead style={{ background: '#fafafa', borderBottom: '1px solid #e5e5ea' }}>
               <tr>
                 <th className="table-header">Nom</th>
-                <th className="table-header">Pseudo de connexion</th>
                 <th className="table-header">Rôle</th>
+                <th className="table-header">Pseudo</th>
               </tr>
             </thead>
             <tbody>
@@ -60,12 +61,6 @@ export default async function UtilisateursPage() {
               {users?.map(u => (
                 <tr key={u.id} style={{ borderTop: '1px solid #f2f2f7' }}>
                   <td className="table-cell font-medium text-sm" style={{ color: '#1d1d1f' }}>{u.nom}</td>
-                  <td className="table-cell text-sm font-mono" style={{ color: '#6e6e73' }}>
-                    {/* L'email interne révèle le pseudo */}
-                    <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: '#f2f2f7' }}>
-                      à récupérer dans Supabase Auth
-                    </span>
-                  </td>
                   <td className="table-cell">
                     <span className={`status-badge ${
                       u.role === 'responsable_pedagogique'
@@ -75,13 +70,15 @@ export default async function UtilisateursPage() {
                       {ROLE_LABELS[u.role] || u.role}
                     </span>
                   </td>
+                  <td className="table-cell text-xs" style={{ color: '#6e6e73' }}>
+                    Voir dans Supabase Auth
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Formulaire */}
         <CreerUtilisateurForm />
       </div>
     </div>
