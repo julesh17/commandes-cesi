@@ -1,9 +1,7 @@
-// src/app/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import { pseudoToEmail } from '@/lib/utils';
 
 export default function LoginPage() {
@@ -11,7 +9,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,8 +23,8 @@ export default function LoginPage() {
       setError('Pseudo ou mot de passe incorrect.');
       setLoading(false);
     } else {
-      router.push('/dashboard');
-      router.refresh();
+      // Rechargement complet pour que le middleware lise la session correctement
+      window.location.href = '/dashboard';
     }
   };
 
