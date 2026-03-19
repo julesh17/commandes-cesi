@@ -243,7 +243,7 @@ export default function CommandesClient({
                 <button key={s} onClick={() => selectByStatut(s)}
                   className="text-xs px-2.5 py-1 rounded-full border transition-all"
                   style={{ background: '#f5f5f7', color: '#3a3a3c', borderColor: '#e5e5ea' }}>
-                  {{'en_attente':'En attente','validee':'Validées','commandee':'Commandées','colis_arrive':'Colis arrivés'}[s]} ({count})
+                  {({'en_attente':'En attente','validee':'Validées','commandee':'Commandées','colis_arrive':'Colis arrivés'} as Record<string,string>)[s]} ({count})
                 </button>
               );
             })}
