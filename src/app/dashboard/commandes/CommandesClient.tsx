@@ -220,7 +220,7 @@ export default function CommandesClient({
           <button
             onClick={toggleMasquer}
             className={`btn-secondary text-xs px-3 py-1.5 ${params.masquer_terminees === '1' ? 'ring-2' : ''}`}
-            style={params.masquer_terminees === '1' ? { ringColor: '#0071e3' } : {}}>
+            >
             {params.masquer_terminees === '1' ? '👁 Afficher terminées' : '🙈 Masquer terminées'}
           </button>
 
