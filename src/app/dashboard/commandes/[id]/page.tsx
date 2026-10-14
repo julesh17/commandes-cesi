@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import StatusBadge from '@/components/StatusBadge';
 import CommandeActions from './CommandeActions';
+import AnnulerCommandeButton from '../AnnulerCommandeButton';
 import type { Commande } from '@/types';
 
 function formatDate(d: string | null) {
@@ -97,12 +98,20 @@ export default async function CommandeDetailPage({
                 <dd style={{ color: '#1d1d1f' }}>{cmd.fournisseurs?.nom || '—'}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt style={{ color: '#6e6e73' }}>Prix estimé TTC</dt>
+                <dt style={{ color: '#6e6e73' }}>Quantité</dt>
+                <dd className="font-medium" style={{ color: '#1d1d1f' }}>{cmd.quantite ?? 1}</dd>
+              </div>
+              <div className="flex justify-between text-sm">
+                <dt style={{ color: '#6e6e73' }}>Prix unitaire TTC</dt>
+                <dd className="font-medium" style={{ color: '#1d1d1f' }}>{Number(cmd.prix_unitaire ?? cmd.prix_estime).toFixed(2)} €</dd>
+              </div>
+              <div className="flex justify-between text-sm">
+                <dt style={{ color: '#6e6e73' }}>Prix total estimé TTC</dt>
                 <dd className="font-medium" style={{ color: '#1d1d1f' }}>{Number(cmd.prix_estime).toFixed(2)} €</dd>
               </div>
               {canSeeRealPrice && cmd.prix_reel && (
                 <div className="flex justify-between text-sm">
-                  <dt style={{ color: '#6e6e73' }}>Prix réel payé</dt>
+                  <dt style={{ color: '#6e6e73' }}>Prix réel total payé</dt>
                   <dd className="font-semibold" style={{ color: '#34c759' }}>{Number(cmd.prix_reel).toFixed(2)} €</dd>
                 </div>
               )}
@@ -188,6 +197,13 @@ export default async function CommandeDetailPage({
         <div className="space-y-4">
           {isAdmin && (
             <CommandeActions commande={cmd} profile={profile} mailtoLink={mailtoLink} />
+          )}
+          {isEtudiant && cmd.statut === 'en_attente' && (
+            <div className="card p-5 space-y-3">
+              <p className="font-semibold text-sm">Annuler cette demande</p>
+              <p className="text-sm text-slate-500">La commande peut être annulée avant sa validation.</p>
+              <AnnulerCommandeButton commandeId={cmd.id} />
+            </div>
           )}
           {isEtudiant && cmd.statut === 'colis_arrive' && (
             <div className="card p-5">

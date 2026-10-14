@@ -17,7 +17,7 @@ export default function ExportPage() {
       const { data: commandes, error: err } = await supabase
         .from('commandes')
         .select(`
-          id, description, lien_produit, prix_estime, prix_reel, email_referent, statut,
+          id, description, lien_produit, quantite, prix_unitaire, prix_estime, prix_reel, email_referent, statut,
           date_creation, date_validation, date_commande, date_colis_arrive, date_reception,
           groupes(nom, promotions(nom, annee_academique)),
           fournisseurs(nom)
@@ -30,7 +30,7 @@ export default function ExportPage() {
       const headers = [
         'N°', 'Description', 'Lien produit', 'Fournisseur',
         'Groupe', 'Promotion', 'Année académique',
-        'Prix estimé (€)', 'Prix réel (€)', 'Email référent', 'Statut',
+        'Quantité', 'Prix unitaire TTC (€)', 'Prix estimé total (€)', 'Prix réel total (€)', 'Email référent', 'Statut',
         'Date création', 'Date validation', 'Date commande',
         'Date arrivée colis', 'Date réception'
       ];
@@ -38,6 +38,7 @@ export default function ExportPage() {
       const STATUS_FR: Record<string, string> = {
         en_attente: 'En attente de validation',
         refusee: 'Refusée',
+        annulee: 'Annulée par le groupe',
         validee: 'Validée — en attente de commande',
         commandee: 'Commandée',
         non_commandable: 'Non commandable',
@@ -60,6 +61,8 @@ export default function ExportPage() {
         (c.groupes as any)?.promotions?.nom || '',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (c.groupes as any)?.promotions?.annee_academique || '',
+        c.quantite ?? 1,
+        Number(c.prix_unitaire ?? c.prix_estime).toFixed(2),
         Number(c.prix_estime).toFixed(2),
         c.prix_reel ? Number(c.prix_reel).toFixed(2) : '',
         c.email_referent,
@@ -114,7 +117,7 @@ export default function ExportPage() {
           <ul className="text-sm text-slate-500 space-y-1 list-disc list-inside">
             <li>N° commande, description, lien produit, fournisseur</li>
             <li>Groupe, promotion, année académique</li>
-            <li>Prix estimé et prix réel payé</li>
+            <li>Quantité, prix unitaire TTC, prix total estimé et prix réel payé</li>
             <li>Email référent, statut</li>
             <li>Toutes les dates (création, validation, commande, arrivée, réception)</li>
           </ul>

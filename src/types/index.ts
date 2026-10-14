@@ -5,6 +5,7 @@ export type UserRole = 'super_admin' | 'responsable_pedagogique' | 'assistante' 
 export type CommandeStatus =
   | 'en_attente'
   | 'refusee'
+  | 'annulee'
   | 'validee'
   | 'commandee'
   | 'non_commandable'
@@ -48,6 +49,8 @@ export interface Commande {
   lien_produit: string;
   description: string;
   fournisseur_id: number | null;
+  quantite: number;
+  prix_unitaire: number;
   prix_estime: number;
   prix_reel: number | null;
   email_referent: string;
@@ -78,6 +81,7 @@ export interface BudgetGroupe {
 export const STATUS_LABELS: Record<CommandeStatus, string> = {
   en_attente: 'En attente de validation',
   refusee: 'Refusée',
+  annulee: 'Annulée par le groupe',
   validee: 'Validée — en attente de commande',
   commandee: 'Commandée',
   non_commandable: 'Non commandable',
@@ -88,6 +92,7 @@ export const STATUS_LABELS: Record<CommandeStatus, string> = {
 export const STATUS_COLORS: Record<CommandeStatus, string> = {
   en_attente:      'bg-amber-50 text-amber-700 border-amber-300',
   refusee:         'bg-red-50 text-red-700 border-red-300',
+  annulee:         'bg-slate-100 text-slate-600 border-slate-300',
   validee:         'bg-blue-50 text-blue-700 border-blue-300',
   commandee:       'bg-violet-50 text-violet-700 border-violet-300',
   non_commandable: 'bg-slate-100 text-slate-500 border-slate-200',
@@ -98,6 +103,7 @@ export const STATUS_COLORS: Record<CommandeStatus, string> = {
 export const STATUS_DOT: Record<CommandeStatus, string> = {
   en_attente:      '#f59e0b',
   refusee:         '#ef4444',
+  annulee:         '#64748b',
   validee:         '#3b82f6',
   commandee:       '#7c3aed',
   non_commandable: '#94a3b8',

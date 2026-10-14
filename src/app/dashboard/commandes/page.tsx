@@ -55,7 +55,7 @@ export default async function CommandesPage({
 
   // Masquer les terminées
   if (params.masquer_terminees === '1') {
-    query = query.not('statut', 'in', '("refusee","non_commandable","receptionnee")');
+    query = query.not('statut', 'in', '("refusee","non_commandable","annulee","receptionnee")');
   }
   if (params.statut) query = query.eq('statut', params.statut);
   if (params.groupe) query = query.eq('groupe_id', params.groupe);

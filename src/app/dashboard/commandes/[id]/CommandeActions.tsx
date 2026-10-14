@@ -45,11 +45,11 @@ export default function CommandeActions({ commande, profile, mailtoLink }: Props
     };
     if (dateMap[newStatut]) updates[dateMap[newStatut]] = now;
 
-    const { error: updateError } = await supabase
-      .from('commandes').update(updates).eq('id', commande.id);
+    const { data: updated, error: updateError } = await supabase
+      .from('commandes').update(updates).eq('id', commande.id).eq('statut', commande.statut).select('id');
 
-    if (updateError) {
-      setError('Erreur : ' + updateError.message);
+    if (updateError || !updated?.length) {
+      setError(updateError ? 'Erreur : ' + updateError.message : 'La commande a changé de statut. Actualisez la page avant de réessayer.');
     } else {
       const actionLabels: Record<string, string> = {
         validee: 'Commande validée',

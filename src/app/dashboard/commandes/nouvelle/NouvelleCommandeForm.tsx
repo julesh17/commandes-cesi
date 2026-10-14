@@ -24,7 +24,8 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
     lien_produit: '',
     description: '',
     fournisseur_id: '',
-    prix_estime: '',
+    prix_unitaire: '',
+    quantite: '1',
     email_referent: '',
     groupe_id: groupeId ? String(groupeId) : '',
   });
@@ -36,8 +37,12 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
     if (!form.lien_produit.trim()) errors.lien_produit = 'Le lien est requis.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.fournisseur_id) errors.fournisseur_id = 'Veuillez sélectionner un fournisseur.';
-    if (!form.prix_estime || isNaN(Number(form.prix_estime)) || Number(form.prix_estime) <= 0)
-      errors.prix_estime = 'Le prix estimé doit être un nombre positif.';
+    if (!form.prix_unitaire || !Number.isFinite(Number(form.prix_unitaire)) || Number(form.prix_unitaire) <= 0 || !/^\d+(?:[.,]\d{1,2})?$/.test(form.prix_unitaire))
+      errors.prix_unitaire = 'Saisissez un prix unitaire positif avec au maximum deux décimales.';
+    if (!/^\d+$/.test(form.quantite) || !Number.isSafeInteger(Number(form.quantite)) || Number(form.quantite) < 1)
+      errors.quantite = 'La quantité doit être un entier supérieur ou égal à 1.';
+    if (!Number.isSafeInteger(Math.round(Number(form.prix_unitaire) * Number(form.quantite) * 100)))
+      errors.prix_unitaire = 'Le montant total est trop élevé.';
     if (!form.email_referent.trim()) {
       errors.email_referent = 'L\'email du référent est requis.';
     } else if (!form.email_referent.endsWith('@viacesi.fr')) {
@@ -47,6 +52,10 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
     return errors;
   };
 
+  const quantite = Number(form.quantite);
+  const prixUnitaire = Number(form.prix_unitaire);
+  const prixTotal = Number.isFinite(quantite * prixUnitaire) ? Math.round(quantite * prixUnitaire * 100) / 100 : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -54,7 +63,7 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const prix = Number(form.prix_estime);
+    const prix = prixTotal;
 
     // Vérification budget pour les étudiants
     if (!isAdmin && prix > budgetRestant) {
@@ -69,6 +78,8 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
       lien_produit: form.lien_produit.trim(),
       description: form.description.trim(),
       fournisseur_id: parseInt(form.fournisseur_id),
+      quantite,
+      prix_unitaire: prixUnitaire,
       prix_estime: prix,
       email_referent: form.email_referent.trim().toLowerCase(),
       statut: 'en_attente',
@@ -144,24 +155,33 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
           </div>
 
           <div>
-            <label className="form-label">
-              Prix estimé TTC (€) *
-              {!isAdmin && (
-                <span className="text-slate-400 font-normal ml-1">
-                  — max {budgetRestant.toFixed(2)} €
-                </span>
-              )}
-            </label>
+            <label className="form-label">Prix unitaire TTC (€) *</label>
             <input
               type="number"
               step="0.01"
               min="0.01"
-              value={form.prix_estime}
-              onChange={set('prix_estime')}
+              value={form.prix_unitaire}
+              onChange={set('prix_unitaire')}
               className="form-input"
               placeholder="0.00"
             />
-            {fieldErrors.prix_estime && <p className="form-error">{fieldErrors.prix_estime}</p>}
+            {fieldErrors.prix_unitaire && <p className="form-error">{fieldErrors.prix_unitaire}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="form-label">Quantité *</label>
+            <input type="number" min="1" step="1" value={form.quantite}
+              onChange={set('quantite')} className="form-input" />
+            {fieldErrors.quantite && <p className="form-error">{fieldErrors.quantite}</p>}
+          </div>
+          <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3" aria-live="polite">
+            <p className="text-xs text-slate-500">Prix total estimé TTC</p>
+            <p className="text-xl font-semibold text-slate-900">{prixTotal.toFixed(2)} €</p>
+            {!isAdmin && <p className={`text-xs mt-1 ${prixTotal > budgetRestant ? 'text-red-600' : 'text-slate-500'}`}>
+              Budget restant : {budgetRestant.toFixed(2)} €
+            </p>}
           </div>
         </div>
 

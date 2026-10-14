@@ -16,12 +16,14 @@ const STATUS_TEXT: Record<string, string> = {
   receptionnee: 'Réceptionnée par le groupe',
   refusee: 'Refusée',
   non_commandable: 'Non commandable',
+  annulee: 'Annulée par le groupe',
 };
 
 function ligneCommande(c: Commande) {
   const lignes = [
     `• Commande #${c.id} — ${c.description}`,
     `  Fournisseur : ${c.fournisseurs?.nom || 'Non renseigné'}`,
+    `  Quantité : ${c.quantite ?? 1}`, 
     `  Lien : ${c.lien_produit}`,
   ];
   return lignes.join('\n');
@@ -37,7 +39,8 @@ function buildMail(commandes: Commande[]) {
 
   const aRemplacer = commandes.filter(c => ['refusee', 'non_commandable'].includes(c.statut));
   const arrives = commandes.filter(c => c.statut === 'colis_arrive');
-  const autres = commandes.filter(c => !['refusee', 'non_commandable', 'colis_arrive'].includes(c.statut));
+  const autres = commandes.filter(c => !['refusee', 'non_commandable', 'annulee', 'colis_arrive'].includes(c.statut));
+  const annulees = commandes.filter(c => c.statut === 'annulee');
 
   const sections: string[] = [];
 
@@ -66,6 +69,10 @@ function buildMail(commandes: Commande[]) {
     sections.push(
       `Voici également les commandes concernées par ce message :\n\n${autres.map(c => `${ligneCommande(c)}\n  Statut : ${STATUS_TEXT[c.statut] || c.statut}`).join('\n\n')}`
     );
+  }
+
+  if (annulees.length > 0) {
+    sections.push(`Commandes annulées par le groupe :\n\n${annulees.map(ligneCommande).join('\n\n')}`);
   }
 
   const sujet = aRemplacer.length > 0

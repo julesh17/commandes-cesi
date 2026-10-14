@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
 import GroupedEmails from './GroupedEmails';
+import AnnulerCommandeButton from './AnnulerCommandeButton';
 import { createClient } from '@/lib/supabase/client';
 import type { Commande, Profile, CommandeStatus } from '@/types';
 
@@ -32,7 +33,7 @@ interface Props {
   isEtudiant: boolean;
 }
 
-const STATUTS_TERMINES = ['refusee', 'non_commandable', 'receptionnee'];
+const STATUTS_TERMINES = ['refusee', 'non_commandable', 'annulee', 'receptionnee'];
 
 // Actions possibles par statut
 const ACTIONS_BULK: Record<string, { label: string; newStatut: CommandeStatus; style: string }[]> = {
@@ -51,6 +52,7 @@ export default function CommandesClient({
   const [isPending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'fournisseur' | 'groupe'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [emailCommandes, setEmailCommandes] = useState<Commande[]>([]);
@@ -141,6 +143,18 @@ export default function CommandesClient({
   const executeBulk = async (newStatut: CommandeStatus) => {
     if (selected.size === 0) return;
     setBulkLoading(true);
+    setBulkError('');
+
+    const previousStatus: Partial<Record<CommandeStatus, CommandeStatus>> = {
+      validee: 'en_attente',
+      commandee: 'validee',
+      colis_arrive: 'commandee',
+      receptionnee: 'colis_arrive',
+    };
+    const expected = previousStatus[newStatut];
+    if (!expected) { setBulkLoading(false); return; }
+
+    const affected = selectedCommandes.filter(c => c.statut === expected);
     const now = new Date().toISOString();
     const dateMap: Partial<Record<CommandeStatus, string>> = {
       validee: 'date_validation',
@@ -148,30 +162,27 @@ export default function CommandesClient({
       colis_arrive: 'date_colis_arrive',
       receptionnee: 'date_reception',
     };
-
     const updates: Record<string, unknown> = { statut: newStatut, date_mise_a_jour: now };
     if (dateMap[newStatut]) updates[dateMap[newStatut]!] = now;
-    if (newStatut === 'validee') updates['validated_by'] = profile.id;
+    if (newStatut === 'validee') updates.validated_by = profile.id;
+    if (newStatut === 'commandee') updates.ordered_by = profile.id;
+
+    let failures = 0;
     if (newStatut === 'commandee') {
-      updates['ordered_by'] = profile.id;
-      // Prix réel = prix estimé si pas encore défini
-      // On fait commande par commande pour respecter le prix estimé de chacune
-      const ids = Array.from(selected);
-      for (const id of ids) {
-        const cmd = commandes.find(c => c.id === id);
-        if (!cmd) continue;
-        await supabase.from('commandes').update({
+      for (const cmd of affected) {
+        const { data, error } = await supabase.from('commandes').update({
           ...updates,
           prix_reel: cmd.prix_reel ?? cmd.prix_estime,
-        }).eq('id', id);
+        }).eq('id', cmd.id).eq('statut', expected).select('id');
+        if (error || !data?.length) failures++;
       }
-      setSelected(new Set());
-      setBulkLoading(false);
-      startTransition(() => router.refresh());
-      return;
+    } else if (affected.length > 0) {
+      const { data, error } = await supabase.from('commandes').update(updates)
+        .in('id', affected.map(c => c.id)).eq('statut', expected).select('id');
+      failures = error ? affected.length : affected.length - (data?.length ?? 0);
     }
 
-    await supabase.from('commandes').update(updates).in('id', Array.from(selected));
+    if (failures > 0) setBulkError(`${failures} commande(s) non mise(s) à jour. Le statut a peut-être changé entre-temps.`);
     setSelected(new Set());
     setBulkLoading(false);
     startTransition(() => router.refresh());
@@ -195,9 +206,9 @@ export default function CommandesClient({
             className="form-input w-auto"
             style={{ minWidth: 180 }}>
             <option value="">Tous les statuts</option>
-            {(['en_attente','validee','commandee','colis_arrive','receptionnee','refusee','non_commandable'] as CommandeStatus[]).map(s => (
+            {(['en_attente','validee','commandee','colis_arrive','receptionnee','refusee','non_commandable','annulee'] as CommandeStatus[]).map(s => (
               <option key={s} value={s}>
-                {{'en_attente':'En attente','validee':'Validée','commandee':'Commandée','colis_arrive':'Colis arrivé','receptionnee':'Réceptionnée par le groupe','refusee':'Refusée','non_commandable':'Non commandable'}[s]}
+                {{'en_attente':'En attente','validee':'Validée','commandee':'Commandée','colis_arrive':'Colis arrivé','receptionnee':'Réceptionnée par le groupe','refusee':'Refusée','non_commandable':'Non commandable','annulee':'Annulée'}[s]}
               </option>
             ))}
           </select>
@@ -255,14 +266,14 @@ export default function CommandesClient({
         {isAdmin && (
           <div className="flex flex-wrap items-center gap-2 pt-2" style={{ borderTop: '1px solid #f2f2f7' }}>
             <span className="text-xs font-medium" style={{ color: '#aeaeb2' }}>Sélection rapide :</span>
-            {(['en_attente','validee','commandee','colis_arrive','refusee','non_commandable','receptionnee'] as CommandeStatus[]).map(s => {
+            {(['en_attente','validee','commandee','colis_arrive','refusee','non_commandable','annulee','receptionnee'] as CommandeStatus[]).map(s => {
               const count = sorted.filter(c => c.statut === s).length;
               if (count === 0) return null;
               return (
                 <button key={s} onClick={() => selectByStatut(s)}
                   className="text-xs px-2.5 py-1 rounded-full border transition-all"
                   style={{ background: '#f5f5f7', color: '#3a3a3c', borderColor: '#e5e5ea' }}>
-                  {({'en_attente':'En attente','validee':'Validées','commandee':'Commandées','colis_arrive':'Colis arrivés','refusee':'Refusées','non_commandable':'Non commandables','receptionnee':'Réceptionnées par le groupe'} as Record<string,string>)[s]} ({count})
+                  {({'en_attente':'En attente','validee':'Validées','commandee':'Commandées','colis_arrive':'Colis arrivés','refusee':'Refusées','non_commandable':'Non commandables','annulee':'Annulées','receptionnee':'Réceptionnées par le groupe'} as Record<string,string>)[s]} ({count})
                 </button>
               );
             })}
@@ -294,6 +305,8 @@ export default function CommandesClient({
         )}
       </div>
 
+      {bulkError && <p role="alert" className="text-sm text-red-600 mb-3">{bulkError}</p>}
+
       {emailCommandes.length > 0 && (
         <GroupedEmails commandes={emailCommandes} onClose={() => setEmailCommandes([])} />
       )}
@@ -322,7 +335,8 @@ export default function CommandesClient({
                 <th className="table-header cursor-pointer select-none" onClick={() => toggleSort('fournisseur')}>
                   Fournisseur {sortIcon('fournisseur')}
                 </th>
-                <th className="table-header">Prix estimé</th>
+                <th className="table-header">Quantité</th>
+                <th className="table-header">Prix estimé total</th>
                 {canSeeRealPrice && <th className="table-header">Prix réel</th>}
                 <th className="table-header">Statut</th>
                 <th className="table-header cursor-pointer select-none" onClick={() => toggleSort('date')}>
@@ -334,7 +348,7 @@ export default function CommandesClient({
             <tbody>
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 7} className="table-cell text-center py-12" style={{ color: '#aeaeb2' }}>
+                  <td colSpan={isAdmin ? 11 : 8} className="table-cell text-center py-12" style={{ color: '#aeaeb2' }}>
                     Aucune commande.
                   </td>
                 </tr>
@@ -371,8 +385,14 @@ export default function CommandesClient({
                       </a>
                     </td>
                     <td className="table-cell text-sm" style={{ color: '#3a3a3c' }}>{c.fournisseurs?.nom || '—'}</td>
+                    <td className="table-cell text-sm" style={{ color: '#3a3a3c' }}>
+                      {c.quantite ?? 1}
+                    </td>
                     <td className="table-cell text-sm font-medium" style={{ color: '#1d1d1f' }}>
                       {Number(c.prix_estime).toFixed(2)} €
+                      <p className="text-xs font-normal" style={{ color: '#aeaeb2' }}>
+                        {Number(c.prix_unitaire ?? c.prix_estime).toFixed(2)} € / unité
+                      </p>
                     </td>
                     {canSeeRealPrice && (
                       <td className="table-cell text-sm" style={{ color: '#6e6e73' }}>
@@ -384,10 +404,15 @@ export default function CommandesClient({
                       {new Date(c.date_creation).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}
                     </td>
                     <td className="table-cell">
-                      <Link href={`/dashboard/commandes/${c.id}`}
-                        className="text-sm font-medium hover:underline" style={{ color: '#0071e3' }}>
-                        Voir →
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/dashboard/commandes/${c.id}`}
+                          className="text-sm font-medium hover:underline" style={{ color: '#0071e3' }}>
+                          Voir →
+                        </Link>
+                        {isEtudiant && c.statut === 'en_attente' && (
+                          <AnnulerCommandeButton commandeId={c.id} compact />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

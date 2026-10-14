@@ -94,16 +94,18 @@ stateDiagram-v2
     [*] --> en_attente: Le groupe soumet une demande
     en_attente --> validee: L'ERP valide
     en_attente --> refusee: L'ERP refuse (motif optionnel)
+    en_attente --> annulee: Le groupe annule
     validee --> commandee: L'AP ou l'ERP passe commande
     validee --> non_commandable: Impossible à commander (motif optionnel)
     commandee --> colis_arrive: Le colis arrive à CESI
     colis_arrive --> receptionnee: L'étudiant récupère le colis
     refusee --> [*]
+    annulee --> [*]
     non_commandable --> [*]
     receptionnee --> [*]
 ```
 
-1. **Un groupe soumet une demande** : lien produit, description, fournisseur, prix estimé TTC, et l'email du référent étudiant (obligatoirement une adresse `@viacesi.fr`). La plateforme vérifie automatiquement que le prix ne dépasse pas le budget restant du groupe.
+1. **Un groupe soumet une demande** : lien produit, description, fournisseur, quantité, prix unitaire TTC, et email du référent étudiant (obligatoirement une adresse `@viacesi.fr`). Le montant total estimé TTC (quantité × prix unitaire) est calculé automatiquement et comparé au budget restant du groupe. Tant que la demande est en attente de validation, le groupe peut l’annuler (la demande reste dans l’historique).
 2. **L'ERP valide ou refuse.** En cas de refus, il peut préciser un motif, visible par le groupe.
 3. **Une fois validée, l'AP (ou l'ERP) passe la commande.** Elle peut alors saisir le **prix réel** payé, s'il diffère du prix estimé (si elle ne saisit rien) le prix estimé est retenu par défaut. Si la commande s'avère finalement impossible à passer, elle peut être marquée **non commandable** (avec motif optionnel) ; elle ne consomme alors aucun budget.
 4. **À l'arrivée du colis à CESI**, un bouton permet d'envoyer en un clic un email prérempli au référent étudiant pour l'informer.
@@ -121,9 +123,10 @@ Le **prix réel** est visible par les ERP, AP et le super admin.
 | 🟠 Colis arrivé | Orange | Le matériel est arrivé à CESI |
 | 🟢 Réceptionnée | Vert | L'étudiant a récupéré son colis - statut final |
 | 🔴 Refusée | Rouge | L'ERP a refusé la demande - statut final |
+| ⚪ Annulée par le groupe | Gris | Le groupe a annulé avant validation - statut final, budget libéré |
 | ⚪ Non commandable | Gris | Impossible à commander après validation - statut final |
 
-Depuis la liste des commandes, il est possible de **masquer les commandes terminées** (réceptionnées, refusées, non commandables) pour ne garder à l'écran que ce qui est encore en cours.
+Depuis la liste des commandes, il est possible de **masquer les commandes terminées** (réceptionnées, refusées, non commandables, annulées) pour ne garder à l'écran que ce qui est encore en cours.
 
 ### Actions groupées
 
@@ -136,7 +139,7 @@ Un onglet **Budget**, réservé aux ERP et au super admin, donne une vue d'ensem
 - un **tableau récapitulatif par promotion** (budget alloué, consommé, restant),
 - des **graphiques** : répartition consommé / restant, répartition par fournisseur, comparaison entre promotions, barres de progression par promotion.
 
-Le budget consommé est calculé automatiquement : le prix réel est utilisé s'il existe, sinon le prix estimé. Les commandes refusées ou non commandables ne comptent jamais dans le budget consommé.
+Le budget consommé est calculé automatiquement : le prix réel est utilisé s'il existe, sinon le prix estimé. Les commandes refusées, annulées ou non commandables ne comptent jamais dans le budget consommé.
 
 Un ERP ne voit le budget que des promotions dont il a la responsabilité ; le super admin voit tout.
 
@@ -204,6 +207,8 @@ erDiagram
         int groupe_id FK
         text description
         int fournisseur_id FK
+        integer quantite
+        numeric prix_unitaire
         numeric prix_estime
         numeric prix_reel
         text email_referent
@@ -231,7 +236,7 @@ erDiagram
     }
 ```
 
-Une **vue** PostgreSQL (`vue_budget_groupes`) calcule à la volée, pour chaque groupe, le budget consommé (prix réel si disponible, sinon prix estimé, en excluant les commandes refusées et non commandables) et le budget restant.
+Une **vue** PostgreSQL (`vue_budget_groupes`) calcule à la volée, pour chaque groupe, le budget consommé (prix réel si disponible, sinon prix estimé, en excluant les commandes refusées, annulées et non commandables) et le budget restant.
 
 ### Authentification
 
@@ -287,6 +292,15 @@ La sécurité repose sur deux niveaux complémentaires :
 2. **Row Level Security (RLS) PostgreSQL** : des politiques au niveau de la base de données garantissent qu'même en cas de contournement du filtrage applicatif, un utilisateur ne peut jamais lire ou modifier des données hors de son périmètre.
 
 Pour éviter les boucles de récursion RLS (une politique sur `profiles` qui interroge `profiles`), la lecture du rôle d'un utilisateur passe par une fonction PostgreSQL `SECURITY DEFINER` (`get_my_role()`), qui court-circuite la récursion tout en conservant le contrôle d'accès.
+
+### Mise à jour de la base Supabase (obligatoire)
+
+Avant le déploiement de cette version, appliquer **dans l’ordre** les deux migrations situées dans `supabase/migrations/` :
+
+1. `20261014120000_ajout_quantites_et_statut_annulee.sql` : ajoute la quantité et le prix unitaire, reprend les commandes anciennes comme des quantités de 1, puis ajoute le statut `annulee`.
+2. `20261014120100_annulation_commandes_et_budget.sql` : recalcule le budget hors annulations, ajoute l'annulation sécurisée par fonction RPC, les protections de transition et la traçabilité.
+
+Depuis Supabase, SQL Editor permet d’exécuter successivement ces fichiers. Si Supabase CLI est déjà relié au projet, on peut aussi appliquer les migrations avec `supabase db push`. **Le code Next.js doit être déployé après ces migrations**. L'annulation n'est permise qu'au compte du groupe, et seulement lorsque la commande est encore `en_attente` ; les annulations restent visibles dans l'historique mais ne consomment plus de budget.
 
 ### Déploiement
 

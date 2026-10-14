@@ -51,7 +51,7 @@ export default async function BudgetPage() {
         .from('commandes')
         .select('id, groupe_id, prix_estime, prix_reel, statut, fournisseur_id, fournisseurs(nom)')
         .in('groupe_id', groupeIds)
-        .not('statut', 'in', '("refusee","non_commandable")')
+        .not('statut', 'in', '("refusee","non_commandable","annulee")')
     : { data: [] };
 
   // Fournisseurs pour les graphiques
