@@ -106,7 +106,7 @@ stateDiagram-v2
 ```
 
 1. **Un groupe soumet une demande** : lien produit, description, fournisseur, quantité, prix unitaire TTC, et email du référent étudiant (obligatoirement une adresse `@viacesi.fr`). Le montant total estimé TTC (quantité × prix unitaire) est calculé automatiquement et comparé au budget restant du groupe. Tant que la demande est en attente de validation, le groupe peut l’annuler (la demande reste dans l’historique).
-2. **L'ERP valide ou refuse.** En cas de refus, il peut préciser un motif, visible par le groupe.
+2. **L'ERP valide ou refuse.** En cas de refus, il peut préciser un motif, visible par le groupe. Depuis la liste des commandes, l’ERP peut également sélectionner plusieurs commandes en attente, cliquer sur « Refuser la sélection » et saisir un motif commun obligatoire. Chaque refus est enregistré individuellement.
 3. **Une fois validée, l'AP (ou l'ERP) passe la commande.** Elle peut alors saisir le **prix réel** payé, s'il diffère du prix estimé (si elle ne saisit rien) le prix estimé est retenu par défaut. Si la commande s'avère finalement impossible à passer, elle peut être marquée **non commandable** (avec motif optionnel) ; elle ne consomme alors aucun budget.
 4. **À l'arrivée du colis à CESI**, un bouton permet d'envoyer en un clic un email prérempli au référent étudiant pour l'informer.
 5. **Quand l'étudiant vient récupérer le colis**, la commande est marquée **réceptionnée**, c'est l'étape finale.

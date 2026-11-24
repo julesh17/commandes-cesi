@@ -37,7 +37,10 @@ const STATUTS_TERMINES = ['refusee', 'non_commandable', 'annulee', 'receptionnee
 
 // Actions possibles par statut
 const ACTIONS_BULK: Record<string, { label: string; newStatut: CommandeStatus; style: string }[]> = {
-  en_attente: [{ label: '✓ Valider la sélection', newStatut: 'validee', style: 'btn-success' }],
+  en_attente: [
+    { label: '✓ Valider la sélection', newStatut: 'validee', style: 'btn-success' },
+    { label: '✗ Refuser la sélection', newStatut: 'refusee', style: 'btn-danger' },
+  ],
   validee: [{ label: '📦 Commander la sélection', newStatut: 'commandee', style: 'btn-primary' }],
   commandee: [{ label: '📬 Marquer colis arrivés', newStatut: 'colis_arrive', style: 'btn-primary' }],
   colis_arrive: [{ label: '✓ Les étudiants ont réceptionné les commandes', newStatut: 'receptionnee', style: 'btn-success' }],
@@ -53,6 +56,8 @@ export default function CommandesClient({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState('');
+  const [refusalIds, setRefusalIds] = useState<number[]>([]);
+  const [refusalMotif, setRefusalMotif] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'fournisseur' | 'groupe'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [emailCommandes, setEmailCommandes] = useState<Commande[]>([]);
@@ -63,6 +68,10 @@ export default function CommandesClient({
 
   // Filtres URL
   const updateParam = (key: string, value: string | null) => {
+    if (bulkLoading) return;
+    setSelected(new Set());
+    setRefusalIds([]);
+    setRefusalMotif('');
     const url = new URL(window.location.href);
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
@@ -132,13 +141,50 @@ export default function CommandesClient({
     for (const [statut, acts] of Object.entries(ACTIONS_BULK)) {
       if (!statutsSelected.has(statut)) continue;
       for (const act of acts) {
-        if (act.newStatut === 'validee' && !canValidate) continue;
+        if (['validee', 'refusee'].includes(act.newStatut) && !canValidate) continue;
         if (['commandee', 'colis_arrive', 'receptionnee'].includes(act.newStatut) && !canOrder) continue;
         if (!actions.find(a => a.newStatut === act.newStatut)) actions.push(act);
       }
     }
     return actions;
   }, [selected, statutsSelected, canValidate, canOrder]);
+
+  const executeRefusal = async () => {
+    const motif = refusalMotif.trim();
+    if (!canValidate || !motif || !refusalIds.length || bulkLoading || isPending) return;
+    setBulkLoading(true);
+    setBulkError('');
+    try {
+      const { data, error } = await supabase.from('commandes').update({
+        statut: 'refusee', motif, date_mise_a_jour: new Date().toISOString(),
+      }).in('id', refusalIds).eq('statut', 'en_attente').select('id');
+      if (error) {
+        setBulkError('Erreur lors du refus : ' + error.message);
+        return;
+      }
+      const updated = data ?? [];
+      const messages: string[] = [];
+      if (updated.length < refusalIds.length) {
+        messages.push(`${refusalIds.length - updated.length} commande(s) non refusée(s) : statut modifié ou accès non autorisé.`);
+      }
+      if (updated.length) {
+        const { error: historyError } = await supabase.from('historique_commandes').insert(
+          updated.map(c => ({ commande_id: c.id, user_id: profile.id,
+            action: 'Commande refusée', details: `Motif : ${motif}` }))
+        );
+        if (historyError) messages.push('Les refus sont enregistrés, mais leur historique n’a pas pu être ajouté : ' + historyError.message);
+      }
+      setBulkError(messages.join(' '));
+      setRefusalIds([]);
+      setRefusalMotif('');
+      setSelected(new Set());
+      startTransition(() => router.refresh());
+    } catch {
+      setBulkError('Une erreur inattendue est survenue. Actualisez la page pour vérifier les statuts avant de réessayer.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const executeBulk = async (newStatut: CommandeStatus) => {
     if (selected.size === 0) return;
@@ -270,7 +316,7 @@ export default function CommandesClient({
               const count = sorted.filter(c => c.statut === s).length;
               if (count === 0) return null;
               return (
-                <button key={s} onClick={() => selectByStatut(s)}
+                <button key={s} disabled={bulkLoading || refusalIds.length > 0} onClick={() => selectByStatut(s)}
                   className="text-xs px-2.5 py-1 rounded-full border transition-all"
                   style={{ background: '#f5f5f7', color: '#3a3a3c', borderColor: '#e5e5ea' }}>
                   {({'en_attente':'En attente','validee':'Validées','commandee':'Commandées','colis_arrive':'Colis arrivés','refusee':'Refusées','non_commandable':'Non commandables','annulee':'Annulées','receptionnee':'Réceptionnées par le groupe'} as Record<string,string>)[s]} ({count})
@@ -278,7 +324,7 @@ export default function CommandesClient({
               );
             })}
             {selected.size > 0 && (
-              <button onClick={() => setSelected(new Set())}
+              <button disabled={bulkLoading || refusalIds.length > 0} onClick={() => setSelected(new Set())}
                 className="text-xs px-2.5 py-1 rounded-full border"
                 style={{ background: '#fff1f0', color: '#ff3b30', borderColor: '#fecaca' }}>
                 Tout désélectionner ({selected.size})
@@ -295,8 +341,14 @@ export default function CommandesClient({
             </span>
             {bulkActions.map(a => (
               <button key={a.newStatut}
-                onClick={() => executeBulk(a.newStatut)}
-                disabled={bulkLoading || isPending}
+                onClick={() => {
+                  if (a.newStatut === 'refusee') {
+                    setBulkError('');
+                    setRefusalMotif('');
+                    setRefusalIds(selectedCommandes.filter(c => c.statut === 'en_attente').map(c => c.id));
+                  } else executeBulk(a.newStatut);
+                }}
+                disabled={bulkLoading || isPending || refusalIds.length > 0}
                 className={`${a.style} text-xs py-1.5 px-3`}>
                 {bulkLoading ? 'En cours…' : a.label}
               </button>
@@ -304,6 +356,23 @@ export default function CommandesClient({
           </div>
         )}
       </div>
+
+      {refusalIds.length > 0 && (
+        <div className="card p-4 mb-5 space-y-3" role="region" aria-label="Refus groupé">
+          <h2 className="font-semibold text-sm">Refuser {refusalIds.length} commande(s) en attente</h2>
+          <p className="text-sm text-gray-600">Commandes concernées : {refusalIds.map(id => `#${id}`).join(', ')}. Les autres statuts ne sont pas modifiés. Le même motif sera visible par chaque groupe concerné.</p>
+          <label htmlFor="bulk-refusal-motif" className="form-label">Motif commun du refus (obligatoire)</label>
+          <textarea id="bulk-refusal-motif" value={refusalMotif} onChange={e => setRefusalMotif(e.target.value)}
+            disabled={bulkLoading} className="form-input resize-none text-sm" rows={3}
+            placeholder="Expliquez pourquoi ces commandes sont refusées…" />
+          <div className="flex flex-wrap gap-2">
+            <button onClick={executeRefusal} disabled={bulkLoading || isPending || !refusalMotif.trim()} className="btn-danger">
+              {bulkLoading ? 'En cours…' : `Confirmer le refus (${refusalIds.length})`}
+            </button>
+            <button disabled={bulkLoading} onClick={() => { setRefusalIds([]); setRefusalMotif(''); }} className="btn-secondary">Annuler</button>
+          </div>
+        </div>
+      )}
 
       {bulkError && <p role="alert" className="text-sm text-red-600 mb-3">{bulkError}</p>}
 
@@ -321,6 +390,7 @@ export default function CommandesClient({
                   <th className="table-header w-10">
                     <input type="checkbox"
                       checked={sorted.length > 0 && selected.size === sorted.length}
+                      disabled={bulkLoading || refusalIds.length > 0}
                       onChange={toggleAll}
                       className="rounded" />
                   </th>
@@ -367,6 +437,7 @@ export default function CommandesClient({
                       <td className="table-cell">
                         <input type="checkbox"
                           checked={isSelected}
+                          disabled={bulkLoading || refusalIds.length > 0}
                           onChange={() => toggleOne(c.id)}
                           className="rounded" />
                       </td>
