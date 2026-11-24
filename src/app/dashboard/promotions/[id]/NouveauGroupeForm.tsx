@@ -103,7 +103,7 @@ export default function NouveauGroupeForm({ promotionId, responsables, fixedResp
               </div>
             ) : (
               <select value={responsableId} onChange={e => setResponsableId(e.target.value)} className="form-input">
-                <option value="">— Sélectionner un responsable —</option>
+                <option value="">- Sélectionner un responsable -</option>
                 {responsables.map(r => (
                   <option key={r.id} value={r.id}>{r.nom}</option>
                 ))}

@@ -455,7 +455,7 @@ export default function CommandesClient({
                         {c.description}
                       </a>
                     </td>
-                    <td className="table-cell text-sm" style={{ color: '#3a3a3c' }}>{c.fournisseurs?.nom || '—'}</td>
+                    <td className="table-cell text-sm" style={{ color: '#3a3a3c' }}>{c.fournisseurs?.nom || '-'}</td>
                     <td className="table-cell text-sm" style={{ color: '#3a3a3c' }}>
                       {c.quantite ?? 1}
                     </td>
@@ -467,7 +467,7 @@ export default function CommandesClient({
                     </td>
                     {canSeeRealPrice && (
                       <td className="table-cell text-sm" style={{ color: '#6e6e73' }}>
-                        {c.prix_reel ? `${Number(c.prix_reel).toFixed(2)} €` : '—'}
+                        {c.prix_reel ? `${Number(c.prix_reel).toFixed(2)} €` : '-'}
                       </td>
                     )}
                     <td className="table-cell"><StatusBadge statut={c.statut} /></td>

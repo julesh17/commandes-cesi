@@ -65,7 +65,7 @@ export default async function DashboardPage() {
         <div className="space-y-6">
           <div className="card p-5">
             <h2 className="font-semibold text-slate-900 mb-1">{groupeData.nom}</h2>
-            <p className="text-sm text-slate-500">{groupeData.promotions?.nom} — {groupeData.promotions?.annee_academique}</p>
+            <p className="text-sm text-slate-500">{groupeData.promotions?.nom} - {groupeData.promotions?.annee_academique}</p>
           </div>
 
           {budgetData && (

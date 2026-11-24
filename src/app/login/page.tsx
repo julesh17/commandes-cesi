@@ -104,7 +104,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs mt-5" style={{ color: '#aeaeb2' }}>
-          CESI — Usage interne uniquement
+          CESI - Usage interne uniquement
         </p>
       </div>
     </div>

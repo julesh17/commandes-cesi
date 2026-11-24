@@ -95,7 +95,7 @@ export default async function CommandeDetailPage({
               </div>
               <div className="flex justify-between text-sm">
                 <dt style={{ color: '#6e6e73' }}>Fournisseur</dt>
-                <dd style={{ color: '#1d1d1f' }}>{cmd.fournisseurs?.nom || '—'}</dd>
+                <dd style={{ color: '#1d1d1f' }}>{cmd.fournisseurs?.nom || '-'}</dd>
               </div>
               <div className="flex justify-between text-sm">
                 <dt style={{ color: '#6e6e73' }}>Quantité</dt>
@@ -183,7 +183,7 @@ export default async function CommandeDetailPage({
                       <p className="font-medium" style={{ color: '#1d1d1f' }}>{h.action}</p>
                       {h.details && <p className="text-xs mt-0.5" style={{ color: '#6e6e73' }}>{h.details}</p>}
                       <p className="text-xs mt-0.5" style={{ color: '#aeaeb2' }}>
-                        {h.profiles?.nom || 'Système'} — {formatDate(h.created_at)}
+                        {h.profiles?.nom || 'Système'} - {formatDate(h.created_at)}
                       </p>
                     </div>
                   </li>

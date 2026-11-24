@@ -46,7 +46,7 @@ export default async function NouvelleCommandePage() {
         <h1 className="text-2xl font-bold text-slate-900 mt-2">Nouvelle commande</h1>
         {groupeActuel && (
           <p className="text-slate-500 text-sm mt-1">
-            Groupe : {groupeActuel.nom} — Budget restant :{' '}
+            Groupe : {groupeActuel.nom} - Budget restant :{' '}
             <span className={budgetRestant <= 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
               {budgetRestant.toFixed(2)} €
             </span>

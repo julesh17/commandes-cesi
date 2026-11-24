@@ -110,7 +110,7 @@ export default function NouvelleCommandeForm({ fournisseurs, groupeId, groupes, 
               <option value="">Sélectionner un groupe…</option>
               {groupes.map(g => (
                 <option key={g.id} value={g.id}>
-                  {g.nom} {g.promotions ? `— ${g.promotions.nom} (${g.promotions.annee_academique})` : ''}
+                  {g.nom} {g.promotions ? `- ${g.promotions.nom} (${g.promotions.annee_academique})` : ''}
                 </option>
               ))}
             </select>

@@ -81,7 +81,7 @@ export default function CommandeActions({ commande, profile, mailtoLink }: Props
   };
 
   const handleCommander = async () => {
-    // Prix réel optionnel — si vide on utilise le prix estimé
+    // Prix réel optionnel - si vide on utilise le prix estimé
     const prix = prixReel.trim()
       ? parseFloat(prixReel)
       : commande.prix_estime;
@@ -154,7 +154,7 @@ export default function CommandeActions({ commande, profile, mailtoLink }: Props
               <label className="form-label">
                 Prix réel payé (€)
                 <span className="font-normal ml-1" style={{ color: '#aeaeb2' }}>
-                  — optionnel, défaut : {Number(commande.prix_estime).toFixed(2)} €
+                  - optionnel, défaut : {Number(commande.prix_estime).toFixed(2)} €
                 </span>
               </label>
               <input type="number" step="0.01" min="0.01"

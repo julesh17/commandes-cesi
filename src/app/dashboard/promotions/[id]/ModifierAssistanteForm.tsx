@@ -45,7 +45,7 @@ export default function ModifierAssistanteForm({ promotionId, assistantes, curre
             <p className="text-sm" style={{ color: '#aeaeb2' }}>Aucune assistante disponible.</p>
           ) : (
             <select value={assistanteId} onChange={e => setAssistanteId(e.target.value)} className="form-input">
-              <option value="">— Sélectionner —</option>
+              <option value="">- Sélectionner -</option>
               {assistantes.map(a => (
                 <option key={a.id} value={a.id}>{a.nom}</option>
               ))}

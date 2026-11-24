@@ -39,7 +39,7 @@ export default function ExportPage() {
         en_attente: 'En attente de validation',
         refusee: 'Refusée',
         annulee: 'Annulée par le groupe',
-        validee: 'Validée — en attente de commande',
+        validee: 'Validée - en attente de commande',
         commandee: 'Commandée',
         non_commandable: 'Non commandable',
         colis_arrive: 'Colis arrivé',

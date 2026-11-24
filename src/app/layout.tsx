@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Commandes CESI',
-  description: 'Gestion des commandes de matériel — CESI',
+  description: 'Gestion des commandes de matériel - CESI',
 };
 
 export default function RootLayout({

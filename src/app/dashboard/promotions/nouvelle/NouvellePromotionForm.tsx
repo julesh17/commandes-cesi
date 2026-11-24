@@ -94,7 +94,7 @@ export default function NouvellePromotionForm({ assistantes, responsables, fixed
           </div>
         ) : (
           <select value={form.responsable_id} onChange={set('responsable_id')} className="form-input">
-            <option value="">— Sélectionner un responsable —</option>
+            <option value="">- Sélectionner un responsable -</option>
             {responsables.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
           </select>
         )}
@@ -110,7 +110,7 @@ export default function NouvellePromotionForm({ assistantes, responsables, fixed
           </div>
         ) : (
           <select value={form.assistante_id} onChange={set('assistante_id')} className="form-input">
-            <option value="">— Sélectionner une assistante —</option>
+            <option value="">- Sélectionner une assistante -</option>
             {assistantes.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
           </select>
         )}

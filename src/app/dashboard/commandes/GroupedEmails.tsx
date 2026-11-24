@@ -21,7 +21,7 @@ const STATUS_TEXT: Record<string, string> = {
 
 function ligneCommande(c: Commande) {
   const lignes = [
-    `• Commande #${c.id} — ${c.description}`,
+    `• Commande #${c.id} - ${c.description}`,
     `  Fournisseur : ${c.fournisseurs?.nom || 'Non renseigné'}`,
     `  Quantité : ${c.quantite ?? 1}`, 
     `  Lien : ${c.lien_produit}`,
@@ -76,12 +76,12 @@ function buildMail(commandes: Commande[]) {
   }
 
   const sujet = aRemplacer.length > 0
-    ? `Commandes CESI — produits à remplacer — ${groupe}`
+    ? `Commandes CESI - produits à remplacer - ${groupe}`
     : arrives.length > 0
-      ? `Commandes CESI disponibles — ${groupe}`
-      : `Suivi des commandes CESI — ${groupe}`;
+      ? `Commandes CESI disponibles - ${groupe}`
+      : `Suivi des commandes CESI - ${groupe}`;
 
-  const contexteGroupe = promotion ? `${groupe} — ${promotion}` : groupe;
+  const contexteGroupe = promotion ? `${groupe} - ${promotion}` : groupe;
   const corps = [
     'Bonjour,',
     '',
@@ -128,7 +128,7 @@ export default function GroupedEmails({ commandes, onClose }: Props) {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-semibold text-sm" style={{ color: '#1d1d1f' }}>
-                  {mail.groupe}{mail.promotion ? ` — ${mail.promotion}` : ''}
+                  {mail.groupe}{mail.promotion ? ` - ${mail.promotion}` : ''}
                 </p>
                 <p className="text-xs mt-1 break-all" style={{ color: '#6e6e73' }}>
                   <span className="font-medium">À :</span> {mail.destinataires.join(', ') || 'Aucun référent renseigné'}

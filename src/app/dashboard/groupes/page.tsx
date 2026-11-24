@@ -69,7 +69,7 @@ export default async function GroupesPage() {
         <h1 className="text-2xl font-bold text-slate-900">Groupes & Budgets</h1>
         <p className="text-slate-500 text-sm mt-1">
           Vue d&apos;ensemble des budgets par groupe
-          {canEditBudget && ' — le budget d’un groupe peut être ajusté exceptionnellement'}
+          {canEditBudget && ' - le budget d’un groupe peut être ajusté exceptionnellement'}
         </p>
       </div>
 

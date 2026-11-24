@@ -89,7 +89,7 @@ export default function FournisseursPage() {
                     {f.site_web
                       ? <a href={f.site_web} target="_blank" rel="noopener noreferrer"
                            className="text-sm hover:underline" style={{ color: '#0071e3' }}>Voir ↗</a>
-                      : <span style={{ color: '#aeaeb2' }}>—</span>}
+                      : <span style={{ color: '#aeaeb2' }}>-</span>}
                   </td>
                   <td className="table-cell">
                     <span className={`status-badge ${f.actif ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>

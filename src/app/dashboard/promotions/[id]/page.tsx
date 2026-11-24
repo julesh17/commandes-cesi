@@ -53,9 +53,9 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
             {promotion.nom}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: '#6e6e73' }}>
-            {promotion.annee_academique} — Budget par groupe : {Number(promotion.budget_par_groupe).toFixed(2)} €
+            {promotion.annee_academique} - Budget par groupe : {Number(promotion.budget_par_groupe).toFixed(2)} €
             {assistanteActuelle && (
-              <> — Assistante : <strong style={{ color: '#1d1d1f' }}>{assistanteActuelle.nom}</strong></>
+              <> - Assistante : <strong style={{ color: '#1d1d1f' }}>{assistanteActuelle.nom}</strong></>
             )}
           </p>
         </div>
@@ -105,11 +105,11 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
                   <tr key={g.id} style={{ borderTop: '1px solid #f2f2f7' }}>
                     <td className="table-cell font-medium text-sm" style={{ color: '#1d1d1f' }}>{g.nom}</td>
                     <td className="table-cell text-sm" style={{ color: '#6e6e73' }}>
-                      {(g.responsable as { nom: string } | null)?.nom || <span style={{ color: '#aeaeb2' }}>—</span>}
+                      {(g.responsable as { nom: string } | null)?.nom || <span style={{ color: '#aeaeb2' }}>-</span>}
                     </td>
-                    <td className="table-cell text-sm">{budget ? `${Number(budget.budget_total).toFixed(2)} €` : '—'}</td>
+                    <td className="table-cell text-sm">{budget ? `${Number(budget.budget_total).toFixed(2)} €` : '-'}</td>
                     <td className="table-cell text-sm" style={{ color: '#f0a500' }}>
-                      {budget ? `${Number(budget.budget_consomme).toFixed(2)} €` : '—'}
+                      {budget ? `${Number(budget.budget_consomme).toFixed(2)} €` : '-'}
                     </td>
                     <td className="table-cell">
                       {budget ? (
@@ -122,7 +122,7 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
                                  style={{ width: `${pct}%`, background: isOver ? '#ff3b30' : pct > 80 ? '#ff9500' : '#34c759' }} />
                           </div>
                         </div>
-                      ) : '—'}
+                      ) : '-'}
                     </td>
                   </tr>
                 );
